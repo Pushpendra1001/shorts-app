@@ -1,20 +1,12 @@
-// async function loadVideos() {
-//     const response = await fetch('/api/videos');
-//     const videos = await response.json();
+async function searchVideos() {
+    const searchTerm = document.getElementById('searchInput').value;
+    const response = await fetch(`/api/videos/search?q=${searchTerm}`);
+    const videos = await response.json();
+    updateFeed(videos);
+}
 
-//     const feed = document.getElementById('feed');
-//     videos.forEach(video => {
-//         const videoElement = document.createElement('div');
-//         videoElement.innerHTML = \
-//             <video controls>
-//                 <source src="\" type="video/mp4">
-//             </video>
-//             <p>\</p>
-//         \;
-//         feed.appendChild(videoElement);
-//     });
-// }
-
-// if (document.getElementById('feed')) {
-//     loadVideos();
-// }
+function updateFeed(videos) {
+    const feedDiv = document.getElementById('feed');
+    feedDiv.innerHTML = '';
+    
+}

@@ -13,12 +13,12 @@
             <h2 class="text-center mb-4">Login</h2>
             <form id="loginForm">
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email Address</label>
-                    <input type="email" id="email" class="form-control" placeholder="Enter your email" required>
+                    <label for="loginEmail" class="form-label">Email Address</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" required>
                 </div>
                 <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password" required>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Login</button>
             </form>
@@ -30,8 +30,8 @@
     <script>
         document.getElementById("loginForm").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
 
             const response = await fetch("/login", {
                 method: "POST",
@@ -41,8 +41,7 @@
 
             const data = await response.json();
             if (data.message) {
-                alert("Login successful!");
-                window.location.href = "/profile";
+                window.location.href = data.redirect;
             } else {
                 alert(data.error);
             }

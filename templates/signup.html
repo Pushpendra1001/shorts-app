@@ -24,6 +24,13 @@
                     <label for="signupPassword" class="form-label">Password</label>
                     <input type="password" id="signupPassword" class="form-control" placeholder="Enter your password" required>
                 </div>
+                <div class="mb-3">
+                    <label for="userType" class="form-label">Account Type</label>
+                    <select id="userType" class="form-control" required>
+                        <option value="viewer">Viewer</option>
+                        <option value="creator">Creator</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-success w-100">Sign Up</button>
             </form>
             <div class="mt-3 text-center">
@@ -33,25 +40,26 @@
     </div>
     <script>
         document.getElementById("signupForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const name = document.getElementById("signupName").value;
-            const email = document.getElementById("signupEmail").value;
-            const password = document.getElementById("signupPassword").value;
+    e.preventDefault();
+    const name = document.getElementById("signupName").value;
+    const email = document.getElementById("signupEmail").value;
+    const password = document.getElementById("signupPassword").value;
+    const userType = document.getElementById("userType").value;
 
-            const response = await fetch("/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password }),
-            });
+    const response = await fetch("/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, userType }),
+    });
 
-            const data = await response.json();
-            if (data.message) {
-                alert("Signup successful!");
-                window.location.href = "/login";
-            } else {
-                alert(data.error);
-            }
-        });
+    const data = await response.json();
+    if (data.message) {
+        alert("Signup successful!");
+        window.location.href = "/login";
+    } else {
+        alert(data.error);
+    }
+});
     </script>
 </body>
 </html>

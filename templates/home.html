@@ -5,19 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <title>Home</title>
+    <style>
+        .video-container {
+            height: 100vh;
+            width: 100%;
+            position: relative;
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            display: none;
+        }
+        
+        .video-card {
+            height: 70vh;
+            width: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .video-player {
+            max-height: 75vh;
+            max-width: 100%;
+            object-fit: contain;
+        }
+        
+        .video-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .video-grid {
+            display: none;
+        }
+
+        .active-view {
+            display: block;
+        }
+
+        .toggle-btn.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+    </style>
 </head>
 <body>
     <header class="bg-dark text-white p-3">
         <h1 class="text-center">Video Feed</h1>
         <nav class="text-center">
-            <a href="/upload" class="btn btn-primary">Upload Video</a>
+            {% if session['user']['user_type'] == 'creator' %}
+                <a href="/upload" class="btn btn-primary">Upload Video</a>
+            {% endif %}
             <a href="/profile" class="btn btn-secondary">Profile</a>
             <a href="/logout" class="btn btn-danger">Logout</a>
         </nav>
     </header>
-    <main class="container my-4">
-        <div class="row" id="videoFeed">
+
+    <div class="view-toggle">
+        <button class="btn toggle-btn active" onclick="toggleView('reels')">Reels View</button>
+        <button class="btn toggle-btn" onclick="toggleView('grid')">Grid View</button>
+    </div>
+
+    <div class="container my-3 video-grid">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search videos...">
+                    <button class="btn btn-primary" onclick="searchVideos()">Search</button>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4" id="videoGrid">
             {% for video in videos %}
             <div class="col-md-4 mb-4">
                 <div class="card shadow">
@@ -26,36 +98,223 @@
                     </video>
                     <div class="card-body">
                         <h5 class="card-title">{{ video.title }}</h5>
-                        <p class="text-muted">Uploaded by {{ video.user_id }}</p>
-                        <button class="btn btn-primary" onclick="likeVideo('{{ video.id }}')">Like</button>
-                        <button class="btn btn-secondary" onclick="commentVideo('{{ video.id }}')">Comment</button>
+                        <button class="btn btn-primary" onclick="likeVideo('{{ video._id }}')">
+                            Like (<span id="likes-{{ video._id }}">{{ video.likes|length }}</span>)
+                        </button>
+                        <button class="btn btn-secondary" onclick="commentVideo('{{ video._id }}')">Comment</button>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
-    </main>
-    <script>
-        async function likeVideo(videoId) {
-            const response = await fetch(`/api/videos/${videoId}/like`, {
-                method: "POST",
-            });
-            const data = await response.json();
-            alert(`Likes: ${data.likes}`);
-        }
+    </div>
 
-        async function commentVideo(videoId) {
-            const comment = prompt("Enter your comment:");
-            if (comment) {
-                const response = await fetch(`/api/videos/${videoId}/comment`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ comment }),
-                });
-                const data = await response.json();
-                alert(data.message);
+    <div class="modal fade" id="commentsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Comments</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="commentsList" class="mb-3"></div>
+                    <div class="input-group">
+                        <input type="text" id="commentInput" class="form-control" placeholder="Add a comment...">
+                        <button class="btn btn-primary" onclick="submitComment()">Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="video-container active-view">
+        {% for video in videos %}
+        <div class="video-card">
+            <video class="video-player" loop onclick="togglePlay(this)">
+                <source src="{{ video.url }}" type="video/mp4">
+            </video>
+            <div class="video-info">
+                <h5>{{ video.title }}</h5>
+                <div class="video-uploader">
+                    <i class="fas fa-user"></i>
+                    <span>{{ video.uploader_name }}</span>
+                </div>
+                <div class="interaction-buttons">
+                    <button class="btn btn-primary btn-sm" onclick="likeVideo('{{ video._id }}')">
+                        <i class="fas fa-heart"></i> Like (<span id="likes-reel-{{ video._id }}">{{ video.likes|length }}</span>)
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="commentVideo('{{ video._id }}')">
+                        <i class="fas fa-comment"></i> Comment
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+  
+
+    <script>
+        function toggleView(view) {
+            const reelsView = document.querySelector('.video-container');
+            const gridView = document.querySelector('.video-grid');
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+            if (view === 'reels') {
+                reelsView.classList.add('active-view');
+                gridView.classList.remove('active-view');
+                toggleBtns[0].classList.add('active');
+                toggleBtns[1].classList.remove('active');
+            } else {
+                gridView.classList.add('active-view');
+                reelsView.classList.remove('active-view');
+                toggleBtns[1].classList.add('active');
+                toggleBtns[0].classList.remove('active');
             }
         }
-    </script>
+
+        function togglePlay(video) {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        }
+        
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.play();
+                    } else {
+                        entry.target.pause();
+                    }
+                });
+            },
+            { threshold: 0.7 }
+        );
+        
+        document.querySelectorAll('.video-player').forEach(video => {
+            observer.observe(video);
+        });
+
+        async function searchVideos() {
+            const searchTerm = document.getElementById('searchInput').value;
+            const response = await fetch(`/api/videos/search?q=${searchTerm}`);
+            const videos = await response.json();
+            updateVideoGrid(videos);
+        }
+
+    
+function updateVideoGrid(videos) {
+    const gridDiv = document.getElementById('videoGrid');
+    gridDiv.innerHTML = '';
+    
+    videos.forEach(video => {
+        const videoCard = document.createElement('div');
+        videoCard.classList.add('col-md-4', 'mb-4');
+        videoCard.innerHTML = `
+            <div class="card shadow">
+                <video class="card-img-top" controls>
+                    <source src="${video.url}" type="video/mp4">
+                </video>
+                <div class="card-body">
+                    <h5 class="card-title">${video.title}</h5>
+                    <p class="text-muted">Uploaded by ${video.uploader_name}</p>
+                    <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-primary btn-sm" onclick="likeVideo('${video._id}')">
+                            Like (<span id="likes-grid-${video._id}">${video.likes ? video.likes.length : 0}</span>)
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="commentVideo('${video._id}')">
+                            Comment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        gridDiv.appendChild(videoCard);
+    });
+}
+
+async function likeVideo(videoId) {
+    try {
+        const response = await fetch(`/api/videos/${videoId}/like`, {
+            method: "POST",
+        });
+        const data = await response.json();
+        document.querySelectorAll(`#likes-reel-${videoId}, #likes-grid-${videoId}`).forEach(span => {
+            span.textContent = data.likes;
+        });
+    } catch (error) {
+        console.error('Error liking video:', error);
+    }
+}
+
+async function commentVideo(videoId) {
+    const comment = prompt("Enter your comment:");
+    if (comment) {
+        try {
+            const response = await fetch(`/api/videos/${videoId}/comment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ comment }),
+            });
+            const data = await response.json();
+            alert(data.message);
+        } catch (error) {
+            console.error('Error posting comment:', error);
+        }
+    }
+}
+
+let currentVideoId = null;
+
+async function commentVideo(videoId) {
+    currentVideoId = videoId;
+    const commentsModal = new bootstrap.Modal(document.getElementById('commentsModal'));
+    await loadComments(videoId);
+    commentsModal.show();
+}
+
+async function loadComments(videoId) {
+    try {
+        const response = await fetch(`/api/videos/${videoId}/comments`);
+        const comments = await response.json();
+        const commentsList = document.getElementById('commentsList');
+        commentsList.innerHTML = comments.map(comment => `
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">${comment.user_name}</h6>
+                    <p class="card-text">${comment.content}</p>
+                    <small class="text-muted">${new Date(comment.created_at).toLocaleString()}</small>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading comments:', error);
+    }
+}
+
+async function submitComment() {
+    const content = document.getElementById('commentInput').value.trim();
+    if (!content) return;
+
+    try {
+        const response = await fetch(`/api/videos/${currentVideoId}/comment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comment: content })
+        });
+        
+        if (response.ok) {
+            document.getElementById('commentInput').value = '';
+            await loadComments(currentVideoId);
+        }
+    } catch (error) {
+        console.error('Error posting comment:', error);
+    }
+}
+
+</script>
 </body>
 </html>

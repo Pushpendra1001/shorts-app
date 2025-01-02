@@ -5,15 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
     <title>Shorts App</title>
+    <style>
+        .video-container {
+            height: 100vh;
+            width: 100%;
+            position: relative;
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+        }
+        
+        .video-card {
+            height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            position: relative;
+        }
+        
+        .video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            z-index: 1;
+        }
+        </style>
 </head>
 <body>
     <header class="bg-dark text-white p-3">
         <h1 class="text-center">Short Video App</h1>
         <nav class="text-center">
             <a href="profile.html" class="btn btn-primary">Profile</a>
+            {% if session['user']['user_type'] == 'creator' %}
+            <a href="/upload" class="btn btn-success">Upload</a>
+            {% endif %}
             <a href="/logout" class="btn btn-danger">Logout</a>
         </nav>
     </header>
+<div class="container my-3">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="input-group">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search videos...">
+                <button class="btn btn-primary" onclick="searchVideos()">Search</button>
+            </div>
+        </div>
+    </div>
+</div>
     <main class="container my-4">
         <div id="feed" class="row"></div>
         <div id="feed" class="row"></div>
@@ -27,24 +70,25 @@
         feedDiv.innerHTML = '';
 
         videos.forEach((video) => {
-            const videoCard = document.createElement('div');
-            videoCard.classList.add('col-md-4', 'mb-4');
-            videoCard.innerHTML = `
-                <div class="card">
-                    <video class="card-img-top" controls>
-                        <source src="${video.url}" type="video/mp4">
-                    </video>
-                    <div class="card-body">
-                        <h5 class="card-title">${video.title}</h5>
-                        <button class="btn btn-primary" onclick="likeVideo('${video.id}')">
-                            Like (<span id="likes-${video.id}">${video.likes.length}</span>)
-                        </button>
-                        <button class="btn btn-secondary" onclick="openCommentModal('${video.id}')">Comment</button>
-                    </div>
-                </div>
-            `;
-            feedDiv.appendChild(videoCard);
-        });
+        const videoCard = document.createElement('div');
+        videoCard.classList.add('video-card');
+        videoCard.innerHTML = `
+            <video class="video-player" loop onclick="togglePlay(this)">
+                <source src="${video.url}" type="video/mp4">
+            </video>
+            <div class="video-info">
+                <h5>${video.title}</h5>
+                <button class="btn btn-primary" onclick="likeVideo('${video.id}')">
+                    Like (<span id="likes-${video.id}">${video.likes.length}</span>)
+                </button>
+                <button class="btn btn-secondary" onclick="openCommentModal('${video.id}')">
+                    Comment
+                </button>
+            </div>
+        `;
+        feedDiv.appendChild(videoCard);
+    });
+    setupVideoObserver();
     }
 
     async function likeVideo(videoId) {
@@ -71,6 +115,38 @@
         const result = await response.json();
         alert(result.message);
     }
+
+    
+function setupVideoObserver() {
+    const options = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.8
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.play();
+            } else {
+                entry.target.pause();
+            }
+        });
+    }, options);
+
+    document.querySelectorAll('.video-player').forEach(video => {
+        observer.observe(video);
+    });
+}
+
+function togglePlay(video) {
+    if (video.paused) {
+        video.play();
+    } else {
+        video.pause();
+    }
+}
+
 
     loadFeed();
 </script>
